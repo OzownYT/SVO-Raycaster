@@ -1,0 +1,13 @@
+#pragma once
+#include <glm/glm.hpp>
+
+class Input {
+   public:
+    static bool IsKeyPressed(int key);
+    static bool IsButtonPressed(int button);
+    static glm::vec2 GetMousePosition();
+    static glm::vec2 GetMouseScroll();
+
+   private:
+    static Input* s_Instance;
+};

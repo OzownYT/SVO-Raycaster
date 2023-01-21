@@ -1,0 +1,6 @@
+[submodule "Voxels/ext/glfw"]
+	path = Voxels/ext/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "Voxels/ext/glm"]
+	path = Voxels/ext/glm
+	url = https://github.com/g-truc/glm.git
