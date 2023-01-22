@@ -59,6 +59,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     Octree octree = Util::LoadOBJ("res/models/dragon.obj", SIZE, DEPTH);
+    octree.CreateBuffer();
     // Octree octree(SIZE, DEPTH);
     // std::vector<Vector3f> points;
     // points.push_back({80.f, 80.f, 80.f});

@@ -7,11 +7,18 @@
 #include <bitset>
 
 static int childCount = 0;
+static int voxelCount = 0;
 
 Octree::Octree(int size, int maxDepth) : m_Size(size), m_MaxDepth(maxDepth), m_Root(nullptr) {}
 
 void Octree::Insert(Vector3f point, Color color) {
     Insert(&m_Root, point, color, Vector3i{0}, 0);
+}
+
+void Octree::CreateBuffer() {
+    int i = 0;
+    CreateBuffer(m_Root, i);
+    std::cout << "Total voxels: " << voxelCount << '\n';
 }
 
 void Octree::Insert(Node **node, Vector3f point, Color color, Vector3i position, int depth) {
@@ -55,18 +62,22 @@ void Octree::Insert(Node **node, Vector3f point, Color color, Vector3i position,
     Insert(&(*node)->children[childIndex], point, color, position, ++depth);
 }
 
-unsigned int Octree::GetDescriptor(Node *node, int &index, int pIndex) {
+unsigned int Octree::CreateDescriptor(Node *node, int &index, int pIndex) {
     unsigned int childDesc = 0;
     int ValidChildCount = 0;
     for (int i = 0; i < 8; i++) {
         if (Node *child = node->children[i]) {
             childDesc |= 1 << i;
-            if (child->IsLeaf)
+            if (child->IsLeaf) {
                 childDesc |= 1 << (i + 8);
-            else {
+                voxelCount++;
+            } else {
                 if (!ValidChildCount) {
-                    if ((index - pIndex) > std::exp2(15)) std::cout << "Overflowing: Index -> " << (index - pIndex) << '\n';
+                    if ((index - pIndex) >= std::exp2(15))
+                        childDesc |= 1 << 16;
+
                     childDesc |= (index - pIndex) << 17;
+                    // std::cout << "Overflowing: Index -> " << (index - pIndex) << '\n';
                 }
                 ValidChildCount++;
             }
@@ -87,14 +98,14 @@ static int GetSetBitCount(int n) {
 
 void Octree::CreateBuffer(Node *node, int &index) {
     if (node == m_Root)
-        m_Buffer.push_back(GetDescriptor(node, ++index, 0));
+        m_Buffer.push_back(CreateDescriptor(node, ++index, 0));
 
     int pIndex = index - childCount;
     m_Buffer.resize(index);
     for (int i = 0; i < 8; i++) {
         if (Node *child = node->children[i]) {
             if (!child->IsLeaf) {
-                m_Buffer.at(pIndex) = GetDescriptor(child, index, pIndex);
+                m_Buffer.at(pIndex) = CreateDescriptor(child, index, pIndex);
                 pIndex++;
                 CreateBuffer(child, index);
             }

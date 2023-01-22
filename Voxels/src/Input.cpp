@@ -24,5 +24,6 @@ glm::vec2 Input::GetMousePosition() {
 
 glm::vec2 Input::GetMouseScroll() {
     auto window = Window::Get()->GetNativeWindow();
-    glm::dvec2 offset;
+    glm::dvec2 offset(0);
+    return offset;
 }

@@ -21,18 +21,11 @@ class Octree {
     Octree(int size, int maxDepth);
 
     void Insert(Vector3f point, Color color);
-    void CreateBuffer() {
-        int i = 0;
-        CreateBuffer(m_Root, i);
-    }
+    void CreateBuffer();
     unsigned int *GetBuffer() {
-        int i = 0;
-        CreateBuffer(m_Root, i);
         return m_Buffer.data();
     }
     std::vector<unsigned int> GetVector() {
-        int i = 0;
-        CreateBuffer(m_Root, i);
         return m_Buffer;
     }
 
@@ -41,7 +34,7 @@ class Octree {
 
    private:
     void Insert(Node **node, Vector3f point, Color color, Vector3i position, int depth);
-    unsigned int GetDescriptor(Node *node, int &index, int pIndex);
+    unsigned int CreateDescriptor(Node *node, int &index, int pIndex);
     void CreateBuffer(Node *node, int &index);
 
    private:

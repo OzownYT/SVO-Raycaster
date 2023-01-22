@@ -60,6 +60,9 @@ uint GetChild(uint parent, uint idx, inout uint pIndex) {
             shift++;
         }
     }
+    if (((parent >> 16) & 1) > 0) {
+
+    }
     pIndex = (parent >> 17) + shift + pIndex;
     return descriptors[pIndex];
 }
@@ -127,20 +130,12 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
     // Find which edges are the starting point of the ray intersection
     // If the ray is positive we will enter through the min bounds of the volume
     // If the ray is negative we will enter through the max bounds of the volume
-    vec3 t0 = CalculateT(ro, rd, vec3(
-        sign(rd.x) < 0 ? SIZE : 0,
-        sign(rd.y) < 0 ? SIZE : 0,
-        sign(rd.z) < 0 ? SIZE : 0
-    ));
+    vec3 t0 = CalculateT(ro, rd, rSign0 * SIZE);
     
     // Find which edges are the endning point of the ray intersection
     // If the ray is positive we will exit through the max bounds of the volume
     // If the ray is negative we will exit through the min bounds of the volume     
-    vec3 t1 = CalculateT(ro, rd, vec3(
-        sign(rd.x) >= 0 ? SIZE : 0,
-        sign(rd.y) >= 0 ? SIZE : 0,
-        sign(rd.z) >= 0 ? SIZE : 0
-    ));
+    vec3 t1 = CalculateT(ro, rd, rSign1 * SIZE);
     
     // We find the enter point by finding the biggest start point
     // We find the exit point by finding the smallest end point
@@ -170,7 +165,7 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
             vec3 tv = CalculateT(ro, rd, positions * size + (rSign0 * size));
             float tv_min = maxcomp(tv);
                      
-            if(depth == uDepth) {
+            if ((parent >> 17) == 0) {
                 rh.t = tv_min;
                 rh.pos = ro + rd * rh.t;
                 rh.depth = depth;
