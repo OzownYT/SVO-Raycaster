@@ -4,7 +4,7 @@
 #include "Shader.hpp"
 #include "Chunk.hpp"
 #include "Octree.hpp"
-#include "Load.hpp"
+#include "Util.hpp"
 
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
@@ -22,8 +22,9 @@ unsigned int LoadCubemap(std::vector<std::string> faces);
 void mouse_scroll(GLFWwindow *window, double xoff, double yoff);
 
 int yOffset = 0;
-const int SIZE = 100;
-const int DEPTH = 8;
+const int SIZE = 128;
+const int DEPTH = 10;
+int DRAW_DEPTH = 1;
 
 int main() {
     std::vector<std::string> faces{
@@ -36,7 +37,7 @@ int main() {
 
     };
 
-    Window wnd("Raymarching", 1280, 720);
+    Window wnd("Raymarching", 1920, 1080, GLFW_DECORATED);
     glfwSetScrollCallback(wnd.GetNativeWindow(), mouse_scroll);
 
     CmData cameraData = CmData();
@@ -60,6 +61,7 @@ int main() {
 
     Octree octree = Util::LoadOBJ("res/models/dragon.obj", SIZE, DEPTH);
     octree.CreateBuffer();
+    std::vector<unsigned int> far = octree.GetFarBuffer();
     // Octree octree(SIZE, DEPTH);
     // std::vector<Vector3f> points;
     // points.push_back({80.f, 80.f, 80.f});
@@ -97,10 +99,12 @@ int main() {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindIndex, ssbo);
 
     while (wnd.IsRunning()) {
-        if (Input::IsKeyPressed(GLFW_KEY_ESCAPE))
+        if (Input::IsKeyDown(GLFW_KEY_ESCAPE))
             wnd.SetRunning(false);
-
-        if (Input::IsKeyPressed(GLFW_KEY_LEFT_SHIFT))
+        if (Input::IsButtonPressed(GLFW_MOUSE_BUTTON_1)) {
+            if (DRAW_DEPTH < DEPTH) DRAW_DEPTH++;
+        }
+        if (Input::IsKeyDown(GLFW_KEY_LEFT_SHIFT))
             cm.SetSpeed(3.f);
         else
             cm.SetSpeed(1.0f);
@@ -124,7 +128,9 @@ int main() {
         computeShader.Set1i("uNoiseTexture", 0);
         computeShader.Set1i("uSkybox", 1);
         computeShader.Set1i("uVoxels", 2);
-        computeShader.Set1i("uDepth", DEPTH);
+        computeShader.Set1i("uDepth", DRAW_DEPTH);
+        if (far.size())
+            computeShader.Set1uv("uFar", far.data(), far.size());
         glDispatchCompute(wnd.GetWidth() / 32, (wnd.GetHeight() + 16) / 32, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -138,12 +144,12 @@ int main() {
 
 glm::ivec3 GetMoveVector() {
     glm::ivec3 mVec = glm::ivec3(0);
-    if (Input::IsKeyPressed(GLFW_KEY_D)) mVec.x += 1;
-    if (Input::IsKeyPressed(GLFW_KEY_A)) mVec.x -= 1;
-    if (Input::IsKeyPressed(GLFW_KEY_SPACE)) mVec.y += 1;
-    if (Input::IsKeyPressed(GLFW_KEY_LEFT_CONTROL)) mVec.y -= 1;
-    if (Input::IsKeyPressed(GLFW_KEY_W)) mVec.z += 1;
-    if (Input::IsKeyPressed(GLFW_KEY_S)) mVec.z -= 1;
+    if (Input::IsKeyDown(GLFW_KEY_D)) mVec.x += 1;
+    if (Input::IsKeyDown(GLFW_KEY_A)) mVec.x -= 1;
+    if (Input::IsKeyDown(GLFW_KEY_SPACE)) mVec.y += 1;
+    if (Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) mVec.y -= 1;
+    if (Input::IsKeyDown(GLFW_KEY_W)) mVec.z += 1;
+    if (Input::IsKeyDown(GLFW_KEY_S)) mVec.z -= 1;
     return mVec;
 }
 

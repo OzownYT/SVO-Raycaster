@@ -2,19 +2,20 @@
 layout(local_size_x = 32, local_size_y = 32) in;
 layout(rgba32f, binding = 0) uniform image2D outputImage;
 
-#define MAX_DEPTH 6
+#define MAX_DEPTH 12
 
 uniform mat4 uCameraToWorld;
 uniform mat4 uProjectionInverse;
 uniform float uTime;
 uniform int uDepth;
+uniform uint uFar[256];
 
 float mincomp(in vec3 p) { return min(p.x,min(p.y,p.z)); }
 float maxcomp(in vec3 p) { return max(p.x, max(p.y, p.z)); }
 
 #define INF 1./0.
 #define EPSILON 0.005
-#define SIZE 100.
+#define SIZE 128.
 #define MAX_ITERATIONS 1000
 
 vec3 sunLight  = normalize( vec3(  0.4, 0.4,  0.48 ) );
@@ -60,10 +61,10 @@ uint GetChild(uint parent, uint idx, inout uint pIndex) {
             shift++;
         }
     }
-    if (((parent >> 16) & 1) > 0) {
-
-    }
-    pIndex = (parent >> 17) + shift + pIndex;
+    if (((parent >> 16) & 1) > 0) 
+        pIndex = uFar[parent >> 17] + shift + pIndex;   
+    else
+        pIndex = (parent >> 17) + shift + pIndex;
     return descriptors[pIndex];
 }
 
@@ -165,9 +166,10 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
             vec3 tv = CalculateT(ro, rd, positions * size + (rSign0 * size));
             float tv_min = maxcomp(tv);
                      
-            if ((parent >> 17) == 0) {
+            if (depth == uDepth) {
                 rh.t = tv_min;
-                rh.pos = ro + rd * rh.t;
+                // rh.pos = ro + rd * tv_min;
+                rh.pos = vec3(float(i) / float(MAX_ITERATIONS));
                 rh.depth = depth;
                 return true;
             }
@@ -252,7 +254,7 @@ void main() {
 
     RayHit rh;
     if (RayMarch(ro, rd, rh))
-        pixel = vec3(rh.pos / SIZE);
+        pixel = vec3(rh.pos );
     else 
         pixel = GetSky(rd);
     

@@ -73,11 +73,13 @@ unsigned int Octree::CreateDescriptor(Node *node, int &index, int pIndex) {
                 voxelCount++;
             } else {
                 if (!ValidChildCount) {
-                    if ((index - pIndex) >= std::exp2(15))
+                    if ((index - pIndex) >= std::exp2(15)) {
+                        std::cout << "Overflowing: Index -> " << (index - pIndex) << '\n';
                         childDesc |= 1 << 16;
-
-                    childDesc |= (index - pIndex) << 17;
-                    // std::cout << "Overflowing: Index -> " << (index - pIndex) << '\n';
+                        m_Far.push_back(index - pIndex);
+                        childDesc |= m_Far.size() - 1 << 17;
+                    } else
+                        childDesc |= (index - pIndex) << 17;
                 }
                 ValidChildCount++;
             }
@@ -105,6 +107,8 @@ void Octree::CreateBuffer(Node *node, int &index) {
     for (int i = 0; i < 8; i++) {
         if (Node *child = node->children[i]) {
             if (!child->IsLeaf) {
+                if (index - pIndex > std::exp2(15)) {
+                }
                 m_Buffer.at(pIndex) = CreateDescriptor(child, index, pIndex);
                 pIndex++;
                 CreateBuffer(child, index);

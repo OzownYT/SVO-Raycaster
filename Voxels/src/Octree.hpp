@@ -25,6 +25,7 @@ class Octree {
     unsigned int *GetBuffer() {
         return m_Buffer.data();
     }
+    std::vector<unsigned int> GetFarBuffer() { return m_Far; }
     std::vector<unsigned int> GetVector() {
         return m_Buffer;
     }
@@ -40,6 +41,6 @@ class Octree {
    private:
     Node *m_Root;
     int m_Size, m_MaxDepth;
-    std::vector<unsigned int> m_Buffer;
+    std::vector<unsigned int> m_Buffer, m_Far;
     std::vector<uint8_t> colors;
 };

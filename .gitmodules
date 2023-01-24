@@ -4,3 +4,9 @@
 [submodule "Voxels/ext/glm"]
 	path = Voxels/ext/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "Voxels/ext/assimp"]
+	path = Voxels/ext/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "Voxels/ext/imgui"]
+	path = Voxels/ext/imgui
+	url = https://github.com/ocornut/imgui.git

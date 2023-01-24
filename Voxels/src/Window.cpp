@@ -7,13 +7,14 @@
 
 Window *Window::s_Instance = nullptr;
 
-Window::Window(const char *title, unsigned int width, unsigned int height) {
+Window::Window(const char *title, unsigned int width, unsigned int height, unsigned int flags) {
     Window::s_Instance = this;
     m_Data.Width = width;
     m_Data.Height = height;
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    if (flags & GLFW_DECORATED) glfwWindowHint(GLFW_DECORATED, false);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 

@@ -32,6 +32,18 @@ void Shader::Set1i(const char *name, int value) const {
     glUniform1i(GetLocation(name), value);
 }
 
+void Shader::Set1iv(const char *name, int *value, int length) const {
+    glUniform1iv(GetLocation(name), length, value);
+}
+
+void Shader::Set1u(const char *name, unsigned int value) const {
+    glUniform1ui(GetLocation(name), value);
+}
+
+void Shader::Set1uv(const char *name, unsigned int *value, int length) const {
+    glUniform1uiv(GetLocation(name), length, value);
+}
+
 void Shader::Set1f(const char *name, float value) const {
     glUniform1f(GetLocation(name), value);
 }
