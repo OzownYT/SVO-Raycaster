@@ -1,18 +1,21 @@
-#include "Window.hpp"
-#include "Input.hpp"
 #include "Camera.hpp"
-#include "Shader.hpp"
 #include "Chunk.hpp"
+#include "Input.hpp"
 #include "Octree.hpp"
+#include "Shader.hpp"
 #include "Util.hpp"
+#include "Window.hpp"
 
 #include <GLFW/glfw3.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+#include <bitset>
 #include <glad/glad.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 #include <iostream>
-#include <vector>
 #include <stb_image.h>
-#include <bitset>
+#include <vector>
 
 glm::ivec3 GetMoveVector();
 unsigned int CreateQuad();
@@ -22,9 +25,14 @@ unsigned int LoadCubemap(std::vector<std::string> faces);
 void mouse_scroll(GLFWwindow *window, double xoff, double yoff);
 
 int yOffset = 0;
-const int SIZE = 128;
+const int SIZE = 1024;
 const int DEPTH = 10;
 int DRAW_DEPTH = 1;
+
+void ImGuiInit();
+void ImGuiShutdown();
+void ImGuiBegin();
+void ImGuiEnd();
 
 int main() {
     std::vector<std::string> faces{
@@ -39,10 +47,10 @@ int main() {
 
     Window wnd("Raymarching", 1920, 1080, GLFW_DECORATED);
     glfwSetScrollCallback(wnd.GetNativeWindow(), mouse_scroll);
+    ImGuiInit();
 
-    CmData cameraData = CmData();
-    cameraData.Speed = 0.1f;
-    Camera cm = Camera(glm::vec3(50.0f, 50.0f, SIZE * 2), glm::vec3(0.0f, 1.0f, 0.0f), cameraData);
+    Camera cm = Camera(glm::vec3((float)SIZE / 2.f, (float)SIZE / 2.f, SIZE * 3), glm::vec3(0.f), glm::vec3(0.0f, 1.0f, 0.0f));
+    cm.SetSpeed(0.1f);
     Shader quadShader("res/shaders/vShader.glsl", "res/shaders/fShader.glsl");
     Shader computeShader("res/shaders/cSVOTracer.glsl");
     cm.SetProjection(75.f, (float)wnd.GetWidth() / (float)wnd.GetHeight(), 0.1f, 100.f);
@@ -105,7 +113,7 @@ int main() {
             if (DRAW_DEPTH < DEPTH) DRAW_DEPTH++;
         }
         if (Input::IsKeyDown(GLFW_KEY_LEFT_SHIFT))
-            cm.SetSpeed(3.f);
+            cm.SetSpeed(10.f);
         else
             cm.SetSpeed(1.0f);
         wnd.Update();
@@ -139,6 +147,75 @@ int main() {
         glBindTextureUnit(0, tex);
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        // ImGuiBegin();
+        // std::string v = "Voxels loaded: " + std::to_string(octree.GetVoxelCount());
+        // std::string f = "Far points: " + std::to_string(far.size());
+        // std::string b = "Byte size: " + std::to_string(octree.GetSize() * sizeof(unsigned int));
+        // ImGui::Text(v.c_str());
+        // ImGui::Text(f.c_str());
+        // ImGui::Text(b.c_str());
+        // ImGuiEnd();
+    }
+}
+
+void ImGuiInit() {
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+    // io.ConfigViewportsNoAutoMerge = true;
+    // io.ConfigViewportsNoTaskBarIcon = true;
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    // ImGui::StyleColorsLight();
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ImGuiStyle &style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    GLFWwindow *window = Window::Get()->GetNativeWindow();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 450");
+}
+void ImGuiShutdown() {
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+void ImGuiBegin() {
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+}
+void ImGuiEnd() {
+    ImGuiIO &io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(Window::Get()->GetWidth(), Window::Get()->GetHeight());
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // Update and Render additional Platform Windows
+    // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
+    //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        GLFWwindow *backup_current_context = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backup_current_context);
     }
 }
 

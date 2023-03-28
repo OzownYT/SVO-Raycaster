@@ -15,8 +15,8 @@ float maxcomp(in vec3 p) { return max(p.x, max(p.y, p.z)); }
 
 #define INF 1./0.
 #define EPSILON 0.005
-#define SIZE 128.
-#define MAX_ITERATIONS 1000
+#define SIZE 1024.
+#define MAX_ITERATIONS 500
 
 vec3 sunLight  = normalize( vec3(  0.4, 0.4,  0.48 ) );
 vec3 sunColour = vec3(1.0, .9, .83);
@@ -76,28 +76,6 @@ vec3 CalculateT(vec3 ro, vec3 rd, vec3 p) {
     return (p - ro) * rdInv;
 }
 
-uvec3 Advance(vec3 ro, vec3 rd, inout uvec3 positions, float size) {
-    vec3 pos = positions * size;
-    vec3 t1 = CalculateT(ro, rd, vec3(
-            sign(rd.x) >= 0 ? pos.x + size : pos.x,
-            sign(rd.y) >= 0 ? pos.y + size : pos.y,
-            sign(rd.z) >= 0 ? pos.z + size : pos.z));
-    float tmax = mincomp(t1);
-    uvec3 val = uvec3(
-        uint(tmax == t1.x) ^ positions.x & 1,
-        uint(tmax == t1.y) ^ positions.y & 1,
-        uint(tmax == t1.z) ^ positions.z & 1
-    );
-
-    positions = uvec3(
-        (positions.x & 0xFFFE) | val.x,
-        (positions.y & 0xFFFE) | val.y,
-        (positions.z & 0xFFFE) | val.z
-    );
-
-    return val;
-}
-
 uint SelectChild(vec3 ro, vec3 rd, inout uvec3 positions, float size, float tmin) {
     vec3 p = ro + rd * tmin;
     uvec3 childPos = uvec3(round((p - positions * size) / size));
@@ -125,18 +103,17 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
     rdInv = 1 / rd;
     far = 0;
 
-    vec3 rSign1 = step(0, sign(rd));
-    vec3 rSign0 = vec3(1) - rSign1;
+    vec3 rSign = step(0, sign(rd));
     
     // Find which edges are the starting point of the ray intersection
     // If the ray is positive we will enter through the min bounds of the volume
     // If the ray is negative we will enter through the max bounds of the volume
-    vec3 t0 = CalculateT(ro, rd, rSign0 * SIZE);
+    vec3 t0 = CalculateT(ro, rd, (vec3(1) - rSign) * SIZE);
     
     // Find which edges are the endning point of the ray intersection
     // If the ray is positive we will exit through the max bounds of the volume
     // If the ray is negative we will exit through the min bounds of the volume     
-    vec3 t1 = CalculateT(ro, rd, rSign1 * SIZE);
+    vec3 t1 = CalculateT(ro, rd, rSign * SIZE);
     
     // We find the enter point by finding the biggest start point
     // We find the exit point by finding the smallest end point
@@ -153,32 +130,39 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
 
     for (int i = 0; i < MAX_ITERATIONS; i++) {
         if (tmin > tmax || tmax < 0) return false;
-        float size = exp2(-depth) * SIZE;
+        float size = (1.f / exp2(depth)) * SIZE;
 
-        vec3 tc = CalculateT(ro, rd, positions * size + (rSign1 * size));
+        vec3 tc = CalculateT(ro, rd, positions * size + (rSign * size));
         float tc_max = mincomp(tc);
+
+
 
         // Child is intersected and valid, either draw or go down the tree
         if (IsValid(parent, idx)) {
-            uint prevPIndex = pIndex;
-            uint child = GetChild(parent, idx, pIndex);
-
-            vec3 tv = CalculateT(ro, rd, positions * size + (rSign0 * size));
-            float tv_min = maxcomp(tv);
-                     
             if (depth == uDepth) {
-                rh.t = tv_min;
-                // rh.pos = ro + rd * tv_min;
-                rh.pos = vec3(float(i) / float(MAX_ITERATIONS));
-                rh.depth = depth;
+                
+                rh.t = tmin;
+                rh.pos = ro + rd * tmin;
+                rh.pos = vec3(rand((positions * SIZE).xy), rand((positions * SIZE).yz), rand((positions * SIZE).zx));
+                vec3 tv = CalculateT(ro, rd, positions * size + ((vec3(1) - rSign) * size));
+                vec3 s = sign(rd) - vec3(0.01);
+                rh.normal = (tv.x > tv.y && tv.x > tv.z)
+                            ? vec3(-1, 0, 0)
+                            : (tv.y > tv.z ? vec3(0, -1, 0) : vec3(0, 0, -1));
+                rh.normal *= -s;
+                // rh.pos = vec3(float(i) / float(MAX_ITERATIONS));
+                rh.depth = i;
                 return true;
             }
+            uint prevPIndex = pIndex;
+            uint child = GetChild(parent, idx, pIndex);
+                     
 
             h = tc_max;
             StackEntry e = {parent, prevPIndex};
             stackPush(e);
             parent = child;
-            idx =  SelectChild(ro, rd, positions, size, tv_min);
+            idx =  SelectChild(ro, rd, positions, size, tmin);
             pos = uvec3(
                 positions.x & 1,
                 positions.y & 1,
@@ -219,8 +203,10 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
             StackEntry e = stackPop();
             parent = e.node;
             pIndex = e.pIndex;
-        } else
-            idx = (pos.x << 0) | (pos.y << 1) | (pos.z) << 2;
+        } else {
+            idx = pos.x + (2 * pos.y) + (4 * pos.z);
+            tmin = tc_max;
+        }
     }
 }
 
@@ -254,12 +240,12 @@ void main() {
 
     RayHit rh;
     if (RayMarch(ro, rd, rh))
-        pixel = vec3(rh.pos );
+        pixel = rh.pos * (0.2 + (max(dot(rh.normal, -sunLight), 0.0) * 0.5));
     else 
         pixel = GetSky(rd);
     
     
-    // pixel = PostEffects(vec4(pixel, 1.0), uv).xyz;
+    pixel = PostEffects(vec4(pixel, 1.0), uv).xyz;
 
     imageStore(outputImage, coords, vec4(pixel, 1.0));
 }

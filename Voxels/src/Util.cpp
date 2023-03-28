@@ -58,7 +58,7 @@ Octree LoadOBJ(const char *filepath, int size, int depth) {
     int index = 0;
 
     for (auto face : faces) {
-        if (index % (faces.size() / 10) == 0) std::cout << (int)((float)index / (float)faces.size() * 100.) << "%\n";
+        if (index % (faces.size() / 100) == 0) std::cout << (int)((float)index / (float)faces.size() * 100.) << "%\n";
         Vector3f triangle[3];
         for (int i = 0; i < 3; i++) {
             triangle[i] = {

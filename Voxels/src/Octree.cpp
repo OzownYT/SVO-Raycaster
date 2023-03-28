@@ -1,13 +1,12 @@
 #include "Octree.hpp"
 
+#include <bitset>
 #include <cmath>
+#include <glad/glad.h>
 #include <iostream>
 #include <vector>
-#include <glad/glad.h>
-#include <bitset>
 
 static int childCount = 0;
-static int voxelCount = 0;
 
 Octree::Octree(int size, int maxDepth) : m_Size(size), m_MaxDepth(maxDepth), m_Root(nullptr) {}
 
@@ -18,7 +17,6 @@ void Octree::Insert(Vector3f point, Color color) {
 void Octree::CreateBuffer() {
     int i = 0;
     CreateBuffer(m_Root, i);
-    std::cout << "Total voxels: " << voxelCount << '\n';
 }
 
 void Octree::Insert(Node **node, Vector3f point, Color color, Vector3i position, int depth) {
@@ -42,7 +40,7 @@ void Octree::Insert(Node **node, Vector3f point, Color color, Vector3i position,
         which child this point belongs to.
     */
     (*node)->data.color = color;
-    float size = std::exp2(-depth) * m_Size;
+    float size = (1.f / std::exp2(depth)) * m_Size;
     Vector3i childPos = {
         (int)std::round((point.x - ((float)position.x * size)) / size),
         (int)std::round((point.y - ((float)position.y * size)) / size),
@@ -70,11 +68,11 @@ unsigned int Octree::CreateDescriptor(Node *node, int &index, int pIndex) {
             childDesc |= 1 << i;
             if (child->IsLeaf) {
                 childDesc |= 1 << (i + 8);
-                voxelCount++;
+                m_VoxelCount++;
             } else {
                 if (!ValidChildCount) {
                     if ((index - pIndex) >= std::exp2(15)) {
-                        std::cout << "Overflowing: Index -> " << (index - pIndex) << '\n';
+                        // std::cout << "Overflowing: Index -> " << (index - pIndex) << '\n';
                         childDesc |= 1 << 16;
                         m_Far.push_back(index - pIndex);
                         childDesc |= m_Far.size() - 1 << 17;
@@ -107,8 +105,6 @@ void Octree::CreateBuffer(Node *node, int &index) {
     for (int i = 0; i < 8; i++) {
         if (Node *child = node->children[i]) {
             if (!child->IsLeaf) {
-                if (index - pIndex > std::exp2(15)) {
-                }
                 m_Buffer.at(pIndex) = CreateDescriptor(child, index, pIndex);
                 pIndex++;
                 CreateBuffer(child, index);

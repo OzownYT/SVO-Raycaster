@@ -17,7 +17,7 @@ struct Node {
 };
 
 class Octree {
-   public:
+public:
     Octree(int size, int maxDepth);
 
     void Insert(Vector3f point, Color color);
@@ -30,17 +30,18 @@ class Octree {
         return m_Buffer;
     }
 
+    unsigned int GetVoxelCount() const { return m_VoxelCount; }
     unsigned int GetSize() const { return m_Buffer.size() * sizeof(unsigned int); }
     unsigned int GetLength() const { return m_Buffer.size(); }
 
-   private:
+private:
     void Insert(Node **node, Vector3f point, Color color, Vector3i position, int depth);
     unsigned int CreateDescriptor(Node *node, int &index, int pIndex);
     void CreateBuffer(Node *node, int &index);
 
-   private:
+private:
     Node *m_Root;
-    int m_Size, m_MaxDepth;
+    int m_Size, m_MaxDepth, m_VoxelCount;
     std::vector<unsigned int> m_Buffer, m_Far;
     std::vector<uint8_t> colors;
 };
