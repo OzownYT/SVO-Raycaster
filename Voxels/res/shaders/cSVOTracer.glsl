@@ -8,6 +8,7 @@ uniform mat4 uCameraToWorld;
 uniform mat4 uProjectionInverse;
 uniform float uTime;
 uniform int uDepth;
+uniform int uRotate;
 uniform uint uFar[256];
 
 float mincomp(in vec3 p) { return min(p.x,min(p.y,p.z)); }
@@ -143,7 +144,8 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
                 
                 rh.t = tmin;
                 rh.pos = ro + rd * tmin;
-                rh.pos = vec3(rand((positions * SIZE).xy), rand((positions * SIZE).yz), rand((positions * SIZE).zx));
+                rh.pos = rh.pos / SIZE;
+                // rh.pos = vec3(rand((positions * SIZE).xy), rand((positions * SIZE).yz), rand((positions * SIZE).zx));
                 vec3 tv = CalculateT(ro, rd, positions * size + ((vec3(1) - rSign) * size));
                 vec3 s = sign(rd) - vec3(0.01);
                 rh.normal = (tv.x > tv.y && tv.x > tv.z)
@@ -192,7 +194,10 @@ bool RayMarch(vec3 ro, vec3 rd, inout RayHit rh) {
         );
         int axis = CheckNewPos(rd, oldPos, pos);
         if (axis != 0) {
-            if (stackPtr == 0) return false;
+            if (stackPtr == 0) {
+                rh.pos = vec3(.0f);
+                return true;
+            }
             positions = uvec3(
                 positions.x >> 1,
                 positions.y >> 1,
@@ -240,7 +245,8 @@ void main() {
 
     RayHit rh;
     if (RayMarch(ro, rd, rh))
-        pixel = rh.pos * (0.2 + (max(dot(rh.normal, -sunLight), 0.0) * 0.5));
+        pixel = rh.pos ;
+        // pixel = rh.pos * (0.2 + (max(dot(rh.normal, -sunLight), 0.0) * 0.5));
     else 
         pixel = GetSky(rd);
     
